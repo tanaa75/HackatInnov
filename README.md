@@ -190,3 +190,35 @@ WHERE ville = 'Paris' OR 1=1 -- ' OR theme = 'Paris' OR 1=1 -- '
 - **L'apostrophe (`'`) :** Elle sert à "casser" ou fermer prématurément la chaîne de caractères (les guillemets) ouverte par le développeur dans le code PHP. Cela permet de "sortir" de la simple recherche de texte pour insérer du code SQL exécutable juste après.
 - **`OR 1=1` :** C'est une tautologie (une condition qui est toujours VRAIE mathématiquement). La clause WHERE de la requête devient soudainement VRAIE pour chaque ligne de la table, poussant MySQL à renvoyer 100% des lignes de la base.
 - **Les deux tirets (`-- `) :** C'est le marqueur de commentaire en SQL (avec l'espace obligatoire après). Il court-circuite et ignore toute la suite de la requête originale écrite par le développeur (notamment le `' OR theme = '...`), évitant ainsi à MySQL de planter ou d'afficher une erreur de syntaxe sur les guillemets résiduels.
+
+## Questions supplémentaires (Jury)
+
+**1. Justifiez l’utilisation d’une jointure de type LEFT JOIN pour lister l’ensemble des événements satellites.**  
+Un `LEFT JOIN` (ou jointure ouverte) permet de récupérer toutes les lignes de la table de gauche (ici la table-mère `EVENEMENT`), même s'il n'y a pas de correspondance dans les tables filles de droite (`INITIATION` ou `CONFERENCE`). Si on avait utilisé un simple `INNER JOIN`, on perdrait les événements qui n'ont pas encore été définis spécifiquement ou on n'afficherait que des conférences et aucune initiation, car la jointure stricte masquerait les relations "vides".
+
+**2. Pourquoi le choix de la date et l’heure comme clé d’un dictionnaire est-il pertinent pour le planning d’un participant ?**  
+Dans un tableau associatif PHP (dictionnaire), la règle d'or est que chaque clé est absolument unique. En définissant l'heure de début d'une activité comme clé, le dictionnaire garantit techniquement l'unicité des créneaux. Si un participant tente par erreur d'assister à deux activités qui démarrent à la même heure, la deuxième viendra simplement écraser la première ligne, ce qui assure que le planning affiché sera toujours cohérent et sans conflit temporel.
+
+**3. Expliquez comment le déclencheur tg_check_capacite garantit que la limite de places d’un hackathon est respectée.**  
+Le déclencheur `tg_check_capacite` est paramétré sur l'événement logique `BEFORE INSERT` sur la table `INSCRIRE`. Avant de rajouter l'inscription d'un membre à une activité, le SGBD va compter dynamiquement les participants existants. Ensuite, il va comparer ce chiffre avec le champ `nbPlacesMax` de la table `HACKATHON`. Si la jauge est dépassée, un `SIGNAL SQLSTATE` bloque l'insertion, protégeant ainsi l'intégrité de la limite de personnes.
+
+**4. En quoi l’export des données personnelles des membres vers une application publique constitue-t-il une violation du RGPD ?**  
+Le RGPD base sa philosophie sur le principe strict de "minimisation" de la donnée : on ne distribue que ce qui est utile. Ici l'API est destinée à une lecture publique via application mobile, il n'y a aucune raison d'exposer les numéros de téléphone et emails. De plus, c'est une violation manifeste parce que la loi informatique stipule qu'il est formellement interdit de stocker des emails en clair dans une base MySQL locale sans l'accord direct de la CNIL.
+
+**5. Démontrez l’impact d’une saisie utilisateur contenant des guillemets sur une chaîne JSON construite manuellement.**  
+Le format JSON est un protocole de chaîne de paires "clé" : "valeur" où chaque valeur est isolée par des doubles guillemets. Si un organisateur construit textuellement son compte rendu, comme par exemple `{"libelle": "` + $saisie + `"}`, et qu'il tape comme titre `L'atelier "Blockchain"`, ça donne `{"libelle": "L'atelier "Blockchain""}`. Les guillemets présents dans le titre vont fermer précipitamment la structure JSON. L'application mobile (Vue.js) ne reconnaîtra plus son format, ce qui entraînera une erreur de syntaxe fatale (SyntaxError) et fera planter tout le front-end. 
+
+**6. Pourquoi la fonction native json_encode est-elle préférable à une construction de flux par concaténation ?**  
+La fonction native `json_encode()` en PHP convertit directement en flux JSON un objet ou un tableau (array), garantissant ainsi les standards de la norme. Surtout, si un utilisateur met un guillemet double ou des antislashs, la fonction les "échappe" avec succès (elle les transforme en `\"`), évitant littéralement toutes les brisures du format ou les crashs côté script Client abordés à la question précédente.
+
+**7. Quel est l’intérêt d’utiliser des transactions SQL lors de l’ajout d’un événement dans les tables mère et fille ?**  
+L'ajout d'un événement se fait sur une structure hiérarchique avec deux requêtes `INSERT` successives (l'une pour la table générique mère, et l'autre pour la table spécifique fille). L'intérêt fondamental de la transaction SQL (`BEGIN`, `COMMIT`, `ROLLBACK`) est sécuritaire. Elle va garantir l'atomicité systémique. Si la requête pour "la mère" passe mais que le réseau tombe au moment d'insérer dans "la fille", la transaction va s'annuler d'elle-même (Rollback). Elle empêche les données "orphelines" non cohérentes dans la base.
+
+**8. Expliquez comment le mécanisme des requêtes préparées avec PDO neutralise physiquement une injection SQL.**  
+Les requêtes préparées coupent le lien de dangerosité entre la commande SQL et les données. La protection opère dans PDO : lorsqu'on ajoute un paramètre à requêter, PDO gère la manipulation et prend notre variable pour rajouter un système d'antislashs (`\`) derrière tous les caractères dangereux comme les quotes, les tirets ou les chevrons. En faisant ça, le pirate est impuissant car il ne peut plus sortir de la variable textuelle.
+
+**9. Quel est l’intérêt de placer le serveur de bases de données dans une zone privée, séparée de la DMZ ?**  
+L'architecture DMZ vise à héberger exclusivement les composantes qui ont vocation à communiquer directement avec l'extérieur ou le public (comme le Serveur Web ou API). Mettre la base de données dans le LAN restreint permet de créer un cloisonnement défensif (un deuxième pare-feu physique). Si un pirate identifie une faille sur un système web, ou lance un Déni de Service (DDoS), la base MySQL, vitale et centrale, demeure isolée, invisible d'Internet, et totalement protégée derrière le réseau interne fermé.
+
+**10. Décrivez la méthodologie TDD (Test Driven Development) utilisée pour corriger les erreurs de la classe Initiation.**  
+Cette méthode agile implique de concevoir le développement via des tests automatisés (par exemple ici avec l'outil de référence PHPUnit). Au lieu de programmer d'instinct, les problèmes originels de logiques "invisibles" nous ont été signalés par le framework (bouton rouge). Nous avons lu ces erreurs dans le test (un ajout de participant qui persistait au-delà de la capacité, un matériel au compte mal établi), et par la suite modifié les conditions de notre classe métier `Initiation` (`< nbPlaces` ou `unMateriel > 0`) jusqu'à ce que les conditions passent au "Vert".
