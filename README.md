@@ -1,7 +1,7 @@
 # Étude de cas HackatInnov - Réponses
 
 ## A.1
-A faire plus tard.
+L’association **Hackat’Innov** organise des marathons de programmation (hackathons) de 48 heures. Le projet consiste à mettre en place une solution informatique complète (base de données, API PHP et application mobile) permettant de gérer les événements satellites (conférences, initiations) et d'assurer le suivi des inscriptions des membres tout en respectant les contraintes de sécurité et de protection des données (RGPD).
 
 ## A.2.1
 La structure de la base de données respecte la règle de gestion « il ne peut y avoir qu’une seule phase qui débute à une heure donnée pour un hackathon précis » grâce à la clé étrangère idPhase en référence à id de PHASE.
@@ -23,10 +23,10 @@ CREATE TABLE PLANNING (
 Le choix de la "date et heure de début" comme clé du dictionnaire est pertinent car, dans un tableau associatif (dictionnaire), chaque clé est unique. Cela force la particularité des activités affichées : si deux activités devaient se chevaucher à la même heure, la structure de données ne permettrait d'en conserver qu'une seule, donc évitant ainsi les conflits d'affichage dans le planning.
 
 ## A.3.2
-A faire plus tard.
+L'utilisation d'un dictionnaire est plus efficace qu'une liste simple pour la recherche. Comme chaque clé (heure) est indexée, l'application mobile accède directement à l'activité correspondante sans avoir à parcourir tout le tableau (c’est ce qu’on appelle un accès en complexité constante O(1)). Cela garantit une interface fluide et performante pour l'utilisateur final.
 
 ## A.4
-A faire plus tard.
+La clé primaire de la table PLANNING est composée de `(idHackathon, dateHeureDebut)`. Ce choix technique permet de déléguer au SGBD (MySQL) le contrôle de l'intégrité : il devient impossible d’enregistrer deux phases d'un même hackathon débutant à la même heure. Cela protège la base contre les erreurs de saisie humaine et les conflits de planning.
 
 ## B.1.1
 ```php
