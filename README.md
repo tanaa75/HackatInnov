@@ -191,7 +191,7 @@ WHERE ville = 'Paris' OR 1=1 -- ' OR theme = 'Paris' OR 1=1 -- '
 - **`OR 1=1` :** C'est une tautologie (une condition qui est toujours VRAIE mathématiquement). La clause WHERE de la requête devient soudainement VRAIE pour chaque ligne de la table, poussant MySQL à renvoyer 100% des lignes de la base.
 - **Les deux tirets (`-- `) :** C'est le marqueur de commentaire en SQL (avec l'espace obligatoire après). Il court-circuite et ignore toute la suite de la requête originale écrite par le développeur (notamment le `' OR theme = '...`), évitant ainsi à MySQL de planter ou d'afficher une erreur de syntaxe sur les guillemets résiduels.
 
-## Questions supplémentaires (Jury)
+## Questions supplémentaires 
 
 **1. Justifiez l'utilisation d'une jointure de type LEFT JOIN pour lister l'ensemble des événements satellites.**  
 Le LEFT JOIN permet de garder tous les événements de la table mère (EVENEMENT) même s'ils n'ont pas encore de détails dans les tables filles (INITIATION ou CONFERENCE). Sinon avec un JOIN classique on ne verrait que les événements déjà remplis.
