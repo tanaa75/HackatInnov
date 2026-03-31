@@ -1,7 +1,14 @@
 # Étude de cas HackatInnov - Réponses
 
 ## A.1
-L’association **Hackat’Innov** organise des marathons de programmation (hackathons) de 48 heures. Le projet consiste à mettre en place une solution informatique complète (base de données, API PHP et application mobile) permettant de gérer les événements satellites (conférences, initiations) et d'assurer le suivi des inscriptions des membres tout en respectant les contraintes de sécurité et de protection des données (RGPD).
+L’association **Hackat’Innov** organise des marathons de programmation (hackathons) de 48 heures. Le projet consiste à mettre en place une solution informatique complète permettant de gérer les événements, les inscriptions des participants, la constitution des équipes et le vote final du jury, tout en respectant les contraintes de cybersécurité (DICP) et de protection des données (RGPD).
+
+**Proposition d'évolution du schéma relationnel (MLD) :**
+*   **INSCRIPTION** (#idHackathon, #idMembre, dateSaisie, texteLibreCompetences, numSeq)
+*   **EQUIPE** (id, nom, #idProjet, #idHackathon, #idChefProjet)
+*   **AFFECTION** (#idEquipe, #idMembre)
+*   **VOTE** (#idMembreJury, #idEquipe, note)
+*   *Note : Le nombre de places et la date limite sont ajoutés à la table HACKATHON.*
 
 ## A.2.1
 La structure de la base de données respecte la règle de gestion « il ne peut y avoir qu’une seule phase qui débute à une heure donnée pour un hackathon précis » grâce à la clé étrangère idPhase en référence à id de PHASE.
@@ -23,10 +30,53 @@ CREATE TABLE PLANNING (
 Le choix de la "date et heure de début" comme clé du dictionnaire est pertinent car, dans un tableau associatif (dictionnaire), chaque clé est unique. Cela force la particularité des activités affichées : si deux activités devaient se chevaucher à la même heure, la structure de données ne permettrait d'en conserver qu'une seule, donc évitant ainsi les conflits d'affichage dans le planning.
 
 ## A.3.2
-L'utilisation d'un dictionnaire est plus efficace qu'une liste simple pour la recherche. Comme chaque clé (heure) est indexée, l'application mobile accède directement à l'activité correspondante sans avoir à parcourir tout le tableau (c’est ce qu’on appelle un accès en complexité constante O(1)). Cela garantit une interface fluide et performante pour l'utilisateur final.
+```php
+// Algorithme de remplissage du dictionnaire pour un membre $m dans un hackathon $h
+$planningParParticipant = array();
+
+// 1. On ajoute les phases générales du hackathon
+foreach ($h->getLesPhases() as $phase) {
+    $planningParParticipant[$phase->getDateHeure()] = $phase->getLibelle();
+}
+
+// 2. On ajoute les initiations auxquelles le membre est inscrit
+foreach ($h->getLesEvenements() as $evt) {
+    if ($evt instanceof Initiation) {
+        if ($evt->estInscrit($m->getMel())) {
+            $planningParParticipant[$evt->getDateHeure()] = $evt->getLibelle();
+        }
+    }
+}
+ksort($planningParParticipant); // Tri par heure
+```
 
 ## A.4
-La clé primaire de la table PLANNING est composée de `(idHackathon, dateHeureDebut)`. Ce choix technique permet de déléguer au SGBD (MySQL) le contrôle de l'intégrité : il devient impossible d’enregistrer deux phases d'un même hackathon débutant à la même heure. Cela protège la base contre les erreurs de saisie humaine et les conflits de planning.
+**1. Contrôle de capacité (Hackathon) :**
+```sql
+CREATE TRIGGER tg_check_capacite
+BEFORE INSERT ON INSCRIPTION
+FOR EACH ROW
+BEGIN
+    DECLARE v_inscrits INT;
+    DECLARE v_max INT;
+    SELECT COUNT(*) INTO v_inscrits FROM INSCRIPTION WHERE idHackathon = NEW.idHackathon;
+    SELECT nbPlacesMax INTO v_max FROM HACKATHON WHERE id = NEW.idHackathon;
+    IF v_inscrits >= v_max THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Capacité maximale du hackathon atteinte.';
+    END IF;
+END;
+```
+
+**2. Audit de sécurité (Preuve) :**
+```sql
+CREATE TRIGGER tg_audit_votes
+AFTER UPDATE ON VOTE
+FOR EACH ROW
+BEGIN
+    INSERT INTO LOG_VOTES (idEquipe, ancienneNote, nouvelleNote, dateModif, auteur)
+    VALUES (OLD.idEquipe, OLD.note, NEW.note, NOW(), USER());
+END;
+```
 
 ## B.1.1
 ```php
@@ -102,16 +152,29 @@ La ligne `{{lesHackathons.length}}` affiche dynamiquement le nombre de hackathon
 
 ## C.2
 ```html
-<tr>
-    <th>Date</th>
-    <th>Ville</th>
-    <th>Thème</th>
-</tr>
-<tr v-for="hackathon in lesHackathons" :key="hackathon.id">
-    <td>{{hackathon.dateDebut}}</td>
-    <td>{{hackathon.ville}}</td>
-    <td>{{hackathon.theme}}</td>
-</tr>
+<!-- liste.vue -->
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Ville</th>
+        <th>Thème</th> <!-- Nouvelle colonne -->
+    </tr>
+    <tr v-for="hackathon in lesHackathons" :key="hackathon.id">
+        <td>{{hackathon.dateDebut}}</td>
+        <td>{{hackathon.ville}}</td>
+        <td>{{hackathon.theme}}</td> <!-- Nouveau champ -->
+    </tr>
+</table>
+```
+
+```php
+// API - api-rechercher.php (Correction sécurisée)
+$sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville, theme
+        FROM HACKATHON
+        WHERE ville LIKE :critere OR theme LIKE :critere
+        ORDER BY dateHeureDebut, ville';
+$stmt = $pdo->prepare($sql);
+$stmt->bindValue(':critere', "%$critere%", PDO::PARAM_STR);
 ```
 
 ## C.3.a
