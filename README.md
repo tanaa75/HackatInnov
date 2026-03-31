@@ -31,16 +31,13 @@ Le choix de la "date et heure de début" comme clé du dictionnaire est pertinen
 
 ## A.3.2
 ```php
-// Algorithme de remplissage du dictionnaire pour un membre $m dans un hackathon $h
-$planningParParticipant = array();
+ $planningParParticipant = array();
 
-// 1. On ajoute les phases générales du hackathon
-foreach ($h->getLesPhases() as $phase) {
+ foreach ($h->getLesPhases() as $phase) {
     $planningParParticipant[$phase->getDateHeure()] = $phase->getLibelle();
 }
 
-// 2. On ajoute les initiations auxquelles le membre est inscrit
-foreach ($h->getLesEvenements() as $evt) {
+ foreach ($h->getLesEvenements() as $evt) {
     if ($evt instanceof Initiation) {
         if ($evt->estInscrit($m->getMel())) {
             $planningParParticipant[$evt->getDateHeure()] = $evt->getLibelle();
