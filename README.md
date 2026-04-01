@@ -149,12 +149,11 @@ La ligne `{{lesHackathons.length}}` affiche dynamiquement le nombre de hackathon
 
 ## C.2
 ```html
-<!-- liste.vue -->
-<table>
+ <table>
     <tr>
         <th>Date</th>
         <th>Ville</th>
-        <th>Thème</th> <!-- Nouvelle colonne -->
+        <th>Thème</th>  
     </tr>
     <tr v-for="hackathon in lesHackathons" :key="hackathon.id">
         <td>{{hackathon.dateDebut}}</td>
@@ -165,7 +164,7 @@ La ligne `{{lesHackathons.length}}` affiche dynamiquement le nombre de hackathon
 ```
 
 ```php
-// API - api-rechercher.php (Correction sécurisée)
+ 
 $sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville, theme
         FROM HACKATHON
         WHERE ville LIKE :critere OR theme LIKE :critere
