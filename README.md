@@ -44,7 +44,7 @@ Le choix de la "date et heure de début" comme clé du dictionnaire est pertinen
         }
     }
 }
-ksort($planningParParticipant); // Tri par heure
+ksort($planningParParticipant);  
 ```
 
 ## A.4
@@ -158,7 +158,7 @@ La ligne `{{lesHackathons.length}}` affiche dynamiquement le nombre de hackathon
     <tr v-for="hackathon in lesHackathons" :key="hackathon.id">
         <td>{{hackathon.dateDebut}}</td>
         <td>{{hackathon.ville}}</td>
-        <td>{{hackathon.theme}}</td> <!-- Nouveau champ -->
+        <td>{{hackathon.theme}}</td>  
     </tr>
 </table>
 ```
