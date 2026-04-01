@@ -44,7 +44,7 @@ Le choix de la "date et heure de début" comme clé du dictionnaire est pertinen
         }
     }
 }
-ksort($planningParParticipant);  
+ 
 ```
 
 ## A.4
